@@ -23,9 +23,9 @@ class Barrel(BaseModel):
 def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
     
     with db.engine.begin() as connection:
-        output=""
+        #output=""
         for barrel in barrels_delivered:
-                if barrel.potion_type == [0]: # temp value
+                if barrel.potion_type == [0,0,100]: # temp value fpr 100% green
                     gold = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory"))
                     gold = gold.scalar()
 
@@ -39,8 +39,8 @@ def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
                         new_total_ml = total_ml + (barrel.ml_per_barrel * barrel.quantity)
 
                         connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_green_ml = :num_green_ml"), {'num_green_ml': new_total_ml})
-                        output = connection.execute(sqlalchemy.text("SELECT num_green_ml FROM global_inventory"))
-    return output
+                        #output = connection.execute(sqlalchemy.text("SELECT num_green_ml FROM global_inventory"))
+    return "OK"
     
 
 # Gets called once a day
