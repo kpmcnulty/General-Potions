@@ -13,10 +13,10 @@ def get_catalog():
 
     return [
             {
-                "sku": "RED_POTION_0",
-                "name": "red potion",
+                "sku": "GREEN_POTIONS",
+                "name": "green potion",
                 "quantity": 1,
                 "price": 50,
-                "potion_type": [100, 0, 0, 0],
+                "potion_type": [0, 0, 100],
             }
         ]
