@@ -25,7 +25,7 @@ def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
     with db.engine.begin() as connection:
         #output=""
         for barrel in barrels_delivered:
-                if barrel.potion_type == [0,0,100]: # temp value fpr 100% green
+                if barrel.potion_type == [0,100,0, 0]: # temp value fpr 100% green
                     gold = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory"))
                     gold = gold.scalar()
 

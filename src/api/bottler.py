@@ -47,19 +47,12 @@ def get_bottle_plan():
         
         if num_bottles > 0:
             bottled_potions.append({
-                "potion_type": [0, 0, 100],  # 100% green potion for now
+                "potion_type": [0, 100, 0, 0],  # 100% green potion for now
                 "quantity": num_bottles,
 
             })
     return bottled_potions
 
-    # Each bottle has a quantity of what portion of red, blue, and
-    # green potion to add.
-    # Expressed in integers from 1 to 100 that must sum up to 100.
-
-    # Initial logic: bottle all barrels into red potions.
-
-    return bottled_potions
 
 if __name__ == "__main__":
     print(get_bottle_plan())
