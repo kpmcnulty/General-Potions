@@ -23,13 +23,13 @@ class Barrel(BaseModel):
 def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
     
     with db.engine.begin() as connection:
-        #output=""
+        
         for barrel in barrels_delivered:
-                if barrel.potion_type == [0,100,0, 0]: # temp value fpr 100% green
+                if barrel.potion_type == [0,1,0, 0]: # temp value fpr 100% green
                     gold = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory"))
                     gold = gold.scalar()
 
-                    if gold >= barrel.price:
+                    if gold >= (barrel.price * barrel.quantity):
                         new_gold = gold - barrel.price
                         
                         connection.execute(sqlalchemy.text("UPDATE global_inventory SET gold = :gold"), {'gold': new_gold})
