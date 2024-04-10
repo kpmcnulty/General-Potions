@@ -63,7 +63,7 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
             quantity = connection.execute(sqlalchemy.text(sql_to_execute))
             num_potions = quantity.fetchone()[0]
             to_purchase = []
-            if num_potions <= 10 and gold >= price:
+            if num_potions <= 10 and gold >= price and potion_type == [0, 1, 0, 0]:
                 gold -= price #just for checking in loop if theres multiple kinds of buckets, actual gold will be changed in deliver
                 to_purchase.append({
                     "sku": sku,
