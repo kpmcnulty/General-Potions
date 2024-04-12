@@ -47,7 +47,7 @@ def get_bottle_plan():
         
         if num_bottles > 0:
             bottled_potions.append({
-                "potion_type": [0, 1, 0, 0],  # 100% green potion for now
+                "potion_type": [0, 100, 0, 0],  # 100% green potion for now
                 "quantity": num_bottles,
 
             })
