@@ -74,6 +74,8 @@ class Customer(BaseModel):
     character_class: str
     level: int
 
+
+
 @router.post("/visits/{visit_id}")
 def post_visits(visit_id: int, customers: list[Customer]):
     """
@@ -84,10 +86,13 @@ def post_visits(visit_id: int, customers: list[Customer]):
     return "OK"
 
 
+
+carts = {}
 @router.post("/")
 def create_cart(new_cart: Customer):
-    """ """
-    return {"cart_id": 1}
+    newid = len(carts) + 1
+    carts[newid] = {'name': new_cart.customer_name, 'items': {}}
+    return {"cart_id": newid}
 
 
 class CartItem(BaseModel):
@@ -96,9 +101,14 @@ class CartItem(BaseModel):
 
 @router.post("/{cart_id}/items/{item_sku}")
 def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
-    """ """
+    if cart_id in carts:
+        if item_sku in carts[cart_id]['items']:
+            carts[cart_id]['items'][item_sku] += cart_item.quantity
+        else:
+            carts[cart_id]['items'][item_sku] = cart_item.quantity
+        return "OK"
+    return "cart_id doesn't exist"
 
-    return "OK"
 
 
 class CartCheckout(BaseModel):
@@ -106,12 +116,19 @@ class CartCheckout(BaseModel):
 
 @router.post("/{cart_id}/checkout")
 def checkout(cart_id: int, cart_checkout: CartCheckout):
-    """this is hardcoded to just buying 1 green potion at this point """
+    if cart_id not in carts:
+        return  "Cart_id does not exist"
+
+    potions_bought = carts[cart_id]['items'].get('GREEN_POTION', 0)
+    gold_paid = potions_bought * 50
+
+
     with db.engine.begin() as connection:
+        print(cart_checkout.payment)
         potions_response = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory"))
         total_potions = potions_response.scalar()    
-        connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_green_potions = :num_green_potions"), {'num_green_potions': total_potions-1})
+        connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_green_potions = :num_green_potions"), {'num_green_potions': total_potions-potions_bought})
         gold_response = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory"))
         gold = gold_response.scalar()    
-        connection.execute(sqlalchemy.text("UPDATE global_inventory SET gold = :gold"), {'gold': gold+50}) 
-    return {"total_potions_bought": 1, "total_gold_paid": 50}
+        connection.execute(sqlalchemy.text("UPDATE global_inventory SET gold = :gold"), {'gold': gold+gold_paid}) 
+    return {"total_potions_bought": potions_response, "total_gold_paid": gold_paid}
