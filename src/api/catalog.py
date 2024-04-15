@@ -14,6 +14,7 @@ def get_catalog():
         potions_response = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory"))
         total_potions = potions_response.scalar() 
     return [
+            #if quantity is 0  return empty list
             {
                 "sku": "GREEN_POTION",
                 "name": "Green potion",

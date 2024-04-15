@@ -131,4 +131,4 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
         gold_response = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory"))
         gold = gold_response.scalar()    
         connection.execute(sqlalchemy.text("UPDATE global_inventory SET gold = :gold"), {'gold': gold+gold_paid}) 
-    return {"total_potions_bought": potions_response, "total_gold_paid": gold_paid}
+    return {"total_potions_bought": potions_bought, "total_gold_paid": gold_paid}
