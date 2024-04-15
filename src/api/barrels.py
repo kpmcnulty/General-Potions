@@ -25,6 +25,7 @@ def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
     with db.engine.begin() as connection:
         
         for barrel in barrels_delivered:
+                
                 if barrel.potion_type == [0,1,0, 0]: # temp value fpr 100% green
                     gold = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory"))
                     gold = gold.scalar()
@@ -57,11 +58,13 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
             sql_to_execute = "SELECT gold FROM global_inventory"
             result = connection.execute(sqlalchemy.text(sql_to_execute))
             gold = result.scalar()
-
+            sql_to_execute = 
+            quantity = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory"))
+            least_pots = min()
             #sql_to_execute = f"SELECT num_green_potions FROM global_inventory WHERE potion_type = {potion_type}" #not needed yet
             sql_to_execute = "SELECT num_green_potions FROM global_inventory"
             quantity = connection.execute(sqlalchemy.text(sql_to_execute))
-            num_potions = quantity.fetchone()[0]
+            num_potions = quantity.scalar()
             to_purchase = []
             if num_potions <= 10 and gold >= price and potion_type == [0, 1, 0, 0]:
                 gold -= price #just for checking in loop if theres multiple kinds of buckets, actual gold will be changed in deliver
