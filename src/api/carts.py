@@ -118,17 +118,27 @@ class CartCheckout(BaseModel):
 def checkout(cart_id: int, cart_checkout: CartCheckout):
     if cart_id not in carts:
         return  "Cart_id does not exist"
-
-    potions_bought = carts[cart_id]['items'].get('GREEN_POTION', 0)
-    gold_paid = potions_bought * 50
+    gold_paid = 0
+    green_potions_bought = carts[cart_id]['items'].get('GREEN_POTION', 0)
+    gold_paid += green_potions_bought * 50
+    red_potions_bought = carts[cart_id]['items'].get('RED_POTION', 0)
+    gold_paid += red_potions_bought * 50
+    blue_potions_bought = carts[cart_id]['items'].get('BLUE_POTION', 0)
+    gold_paid += blue_potions_bought * 50
 
 
     with db.engine.begin() as connection:
-        print(cart_checkout.payment)
-        potions_response = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory"))
-        total_potions = potions_response.scalar()    
-        connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_green_potions = :num_green_potions"), {'num_green_potions': total_potions-potions_bought})
-        gold_response = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory"))
-        gold = gold_response.scalar()    
+
+        total_green_potions = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory")).scalar()    
+        connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_green_potions = :num_green_potions"), {'num_green_potions': total_green_potions-green_potions_bought})
+
+        total_red_potions = connection.execute(sqlalchemy.text("SELECT num_red_potions FROM global_inventory")).scalar()    
+        connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_red_potions = :num_red_potions"), {'num_red_potions': total_red_potions-red_potions_bought})
+
+        total_blue_potions = connection.execute(sqlalchemy.text("SELECT num_blue_potions FROM global_inventory")).scalar()    
+        connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_blue_potions = :num_blue_potions"), {'num_blue_potions': total_blue_potions-blue_potions_bought})
+
+        
+        gold = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory")).scalar()    
         connection.execute(sqlalchemy.text("UPDATE global_inventory SET gold = :gold"), {'gold': gold+gold_paid}) 
-    return {"total_potions_bought": potions_bought, "total_gold_paid": gold_paid}
+    return {"total_potions_bought": green_potions_bought + red_potions_bought + blue_potions_bought, "total_gold_paid": gold_paid}
