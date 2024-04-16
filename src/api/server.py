@@ -8,17 +8,17 @@ import sys
 from starlette.middleware.cors import CORSMiddleware
 
 description = """
-Central Coast Cauldrons is the premier ecommerce site for all your alchemical desires.
+General Potions will sell you potions.
 """
 
 app = FastAPI(
-    title="Central Coast Cauldrons",
+    title="General Potions",
     description=description,
     version="0.0.1",
     terms_of_service="http://example.com/terms/",
     contact={
-        "name": "Lucas Pierce",
-        "email": "lupierce@calpoly.edu",
+        "name": "Kieran McNulty",
+        "email": "kpmcnult@calpoly.edu",
     },
 )
 
