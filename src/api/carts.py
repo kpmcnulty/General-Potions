@@ -92,7 +92,7 @@ carts = {}
 def create_cart(new_cart: Customer):
     newid = len(carts) + 1
     carts[newid] = {'name': new_cart.customer_name, 'items': {}}
-    return {"cart_id": str(newid)}
+    return {"cart_id": newid}
 
 
 class CartItem(BaseModel):
