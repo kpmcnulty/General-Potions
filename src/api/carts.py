@@ -107,6 +107,8 @@ def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
         else:
             carts[cart_id]['items'][item_sku] = cart_item.quantity
         return "OK"
+    
+    print("cart_id: "+ str(cart_id) + "sku: "+ str(item_sku) + "carts: "+carts)
     return "cart_id doesn't exist"
 
 

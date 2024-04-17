@@ -23,11 +23,16 @@ class Barrel(BaseModel):
 def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
     
     with db.engine.begin() as connection:
-        
+        #add processes db "insert into processes (job_id, type) VALUES (:order_id, 'barrels')"),
+        #[{"order_id":order_id}]
+
+        #then try except
+
         for barrel in barrels_delivered:
                 gold = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory")).scalar()
                 if gold >= (barrel.price * barrel.quantity):
                     new_gold = gold - (barrel.price * barrel.quantity)
+                
                     connection.execute(sqlalchemy.text("UPDATE global_inventory SET gold = :gold"), {'gold': new_gold})
 
                     #green
@@ -45,6 +50,14 @@ def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
                         total_ml = connection.execute(sqlalchemy.text("SELECT num_blue_ml FROM global_inventory")).scalar()
                         new_total_ml = total_ml + barrel.ml_per_barrel * barrel.quantity
                         connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_blue_ml = :num_blue_ml"), {'num_blue_ml': new_total_ml})
+
+                   # elif barrel.potion_type == [0, 0, 0, 1]: 
+                    #    total_ml = connection.execute(sqlalchemy.text("SELECT num_dark_ml FROM global_inventory")).scalar()
+                   #     new_total_ml = total_ml + barrel.ml_per_barrel * barrel.quantity
+                   #     connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_blue_ml = :num_blue_ml"), {'num_blue_ml': new_total_ml})
+                    else:
+                        raise Exception("Invalid potion type")
+    print("gold paid: " + gold - new_gold + " ml bought")
     return "OK"
     
 
