@@ -56,14 +56,18 @@ def get_capacity_plan():
         total_potions = connection.execute(sqlalchemy.text(
             "SELECT SUM(quantity) FROM potions"
         )).scalar()
-    if 
+    potion_units = 0
+    ml_units = 0
+    if (total_potions / results.potion_capacity) > .9:
+        if results.gold >= 1000:
+            potion_units += 1
     total_ml = sum([results.red_ml, results.green_ml, results.blue_ml, results.dark_ml]) 
     if (total_ml / results.ml_capacity) > .9:
         if results.gold >= 1000:
-            
+            ml_units += 1
     return {
-        "potion_capacity": 0, #not going to buy until we get going
-        "ml_capacity": 0
+        "potion_capacity": potion_units,
+        "ml_capacity": ml_units
         }
 
 class CapacityPurchase(BaseModel):
@@ -77,5 +81,20 @@ def deliver_capacity_plan(capacity_purchase : CapacityPurchase, order_id: int):
     Start with 1 capacity for 50 potions and 1 capacity for 10000 ml of potion. Each additional 
     capacity unit costs 1000 gold.
     """
-    
+    with db.engine.begin() as connection:
+        gold_cost = (capacity_purchase.potion_capacity + capacity_purchase.ml_capacity) * 1000
+
+        # Update the gold, potion capacity, and ml capacity in the database
+        connection.execute(
+            sqlalchemy.text(
+                """
+                UPDATE global_inventory
+                SET 
+                    gold = gold - :gold_cost,
+                    potion_capacity = potion_capacity + :potion_capacity,
+                    ml_capacity = ml_capacity + :ml_capacity
+                """
+            ),
+            {"gold_cost": gold_cost, "potion_capacity": capacity_purchase.potion_capacity, "ml_capacity": capacity_purchase.ml_capacity},
+        )
     return "OK"
