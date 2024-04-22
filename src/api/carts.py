@@ -87,60 +87,66 @@ def post_visits(visit_id: int, customers: list[Customer]):
 
 
 
-carts = {}
+
 @router.post("/")
 def create_cart(new_cart: Customer):
-    newid = len(carts) + 1
-    carts[newid] = {'name': new_cart.customer_name, 'items': {}}
+    with db.engine.begin() as connection:
+        num_carts = connection.execute(sqlalchemy.text(
+                """SELECT COUNT(*) FROM carts""")).scalar()
+        newid = num_carts + 1
+        #carts[newid] = {'name': new_cart.customer_name, 'items': {}}
+        connection.execute(
+                sqlalchemy.text(
+                    "INSERT INTO carts (id, name, items) VALUES (:id, :name, [])"),
+                [{"id": newid, "name": new_cart.customer_name}])
     return {"cart_id": newid}
 
 
 class CartItem(BaseModel):
     quantity: int
 
+    
+
 
 @router.post("/{cart_id}/items/{item_sku}")
 def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
-    if cart_id in carts:
-        if item_sku in carts[cart_id]['items']:
-            carts[cart_id]['items'][item_sku] += cart_item.quantity
+    with db.engine.begin() as connection:
+        cart = connection.execute(sqlalchemy.text(
+                "SELECT * FROM carts WHERE id = :cart_id"),[{"cart_id": cart_id}]).one()
+        if cart:
+            connection.execute(sqlalchemy.text(
+                    """
+                    INSERT INTO cart_items (cart_id, sku, quantity) VALUES (:cart_id, :sku, :quantity)
+                    """
+                ),[{"cart_id": cart_id, "sku": str(item_sku), "quantity": cart_item.quantity}])
         else:
-            carts[cart_id]['items'][item_sku] = cart_item.quantity
-        return "OK"
+            return "cart_id does not exist"
+    return "OK"
     
-    print("cart_id: "+ str(cart_id) + "sku: "+ str(item_sku) + "carts: "+carts)
-    return "cart_id doesn't exist"
-
-
 
 class CartCheckout(BaseModel):
     payment: str
 
 @router.post("/{cart_id}/checkout")
 def checkout(cart_id: int, cart_checkout: CartCheckout):
-    if cart_id not in carts:
-        return  "Cart_id does not exist"
-    gold_paid = 0
-    green_potions_bought = carts[cart_id]['items'].get('GREEN_POTION', 0)
-    gold_paid += green_potions_bought * 50
-    red_potions_bought = carts[cart_id]['items'].get('RED_POTION', 0)
-    gold_paid += red_potions_bought * 50
-    blue_potions_bought = carts[cart_id]['items'].get('BLUE_POTION', 0)
-    gold_paid += blue_potions_bought * 50
-
-
     with db.engine.begin() as connection:
-
-        total_green_potions = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory")).scalar()    
-        connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_green_potions = :num_green_potions"), {'num_green_potions': total_green_potions-green_potions_bought})
-
-        total_red_potions = connection.execute(sqlalchemy.text("SELECT num_red_potions FROM global_inventory")).scalar()    
-        connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_red_potions = :num_red_potions"), {'num_red_potions': total_red_potions-red_potions_bought})
-
-        total_blue_potions = connection.execute(sqlalchemy.text("SELECT num_blue_potions FROM global_inventory")).scalar()    
-        connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_blue_potions = :num_blue_potions"), {'num_blue_potions': total_blue_potions-blue_potions_bought})
-
-        
-        gold = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory")).scalar()    
-        connection.execute(sqlalchemy.text("UPDATE global_inventory SET gold = :gold"), {'gold': gold+gold_paid}) 
-    return {"total_potions_bought": green_potions_bought + red_potions_bought + blue_potions_bought, "total_gold_paid": gold_paid}
+        cart = connection.execute(sqlalchemy.text(
+                "SELECT * FROM carts WHERE id = :cart_id"),[{"cart_id": cart_id}]).one()
+        if not cart:
+            return "cart id does not exist"
+        items = connection.execute(sqlalchemy.text(
+                "SELECT * FROM cart_items WHERE cart_id = :cart_id"),[{"cart_id": cart_id}])
+        goldadded = 0
+        potions_bought = 0
+        for item in items:
+            print(item.sku)
+            connection.execute(sqlalchemy.text("""
+                            UPDATE potions 
+                            SET quantity = quantity - :quantity
+                            WHERE sku = :sku
+                            """), {'sku': item.sku, "quantity": item.quantity})
+            goldadded += 50 * item.quantity
+            potions_bought += item.quantity
+        gold = connection.execute(sqlalchemy.text("SELECT gold FROM globals")).scalar()    
+        connection.execute(sqlalchemy.text("UPDATE globals SET gold = :gold"), {'gold': gold+goldadded}) 
+    return {"total_potions_bought": potions_bought, "total_gold_paid": goldadded}
