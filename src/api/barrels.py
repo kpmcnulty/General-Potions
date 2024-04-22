@@ -1,3 +1,5 @@
+from sqlalchemy.exc import IntegrityError
+from typing import Literal
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from src.api import auth
@@ -18,87 +20,125 @@ class Barrel(BaseModel):
     price: int
 
     quantity: int
+    def __init__(self, sku, ml_per_barrel: int, potion_type, price, quantity):
+        super().__init__(sku=sku, ml_per_barrel=ml_per_barrel, potion_type=potion_type, price=price, quantity=quantity) ##do i need this?
 
 @router.post("/deliver/{order_id}")
 def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
-    
+    print (barrels_delivered)
     with db.engine.begin() as connection:
-        #add processes db "insert into processes (job_id, type) VALUES (:order_id, 'barrels')"),
-        #[{"order_id":order_id}]
-
-        #then try except
-
+        connection.execute(
+                sqlalchemy.text(
+                    "INSERT INTO processed (order_id, type) VALUES (:order_id, 'barrels')"),
+                [{"order_id": order_id}])
+        #try:
+        #    
+        #)
+        #except IntegrityError as e:
+        #    print(f"IntegrityError occurred: {e}")
+        #     return "NOT OK"
+        gold_paid = 0 
+        red_ml = 0
+        blue_ml = 0
+        green_ml = 0
+        dark_ml = 0
         for barrel in barrels_delivered:
-                gold = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory")).scalar()
-                if gold >= (barrel.price * barrel.quantity):
-                    new_gold = gold - (barrel.price * barrel.quantity)
-                
-                    connection.execute(sqlalchemy.text("UPDATE global_inventory SET gold = :gold"), {'gold': new_gold})
+                    if barrel.potion_type == [1, 0, 0, 0]:  
+                        gold_paid += barrel.price
+                        red_ml += barrel.ml_per_barrel
 
-                    #green
-                    if barrel.potion_type == [0, 1, 0, 0]: 
-                        total_ml = connection.execute(sqlalchemy.text("SELECT num_green_ml FROM global_inventory")).scalar()
-                        new_total_ml = total_ml + barrel.ml_per_barrel * barrel.quantity
-                        connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_green_ml = :num_green_ml"), {'num_green_ml': new_total_ml})
-                    #red
-                    elif barrel.potion_type == [1, 0, 0, 0]:  
-                        total_ml = connection.execute(sqlalchemy.text("SELECT num_red_ml FROM global_inventory")).scalar()
-                        new_total_ml = total_ml + barrel.ml_per_barrel * barrel.quantity
-                        connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_red_ml = :num_red_ml"), {'num_red_ml': new_total_ml})
-                    #blue
+                    elif barrel.potion_type == [0, 1, 0, 0]: 
+                        gold_paid += barrel.price
+                        green_ml += barrel.ml_per_barrel
                     elif barrel.potion_type == [0, 0, 1, 0]: 
-                        total_ml = connection.execute(sqlalchemy.text("SELECT num_blue_ml FROM global_inventory")).scalar()
-                        new_total_ml = total_ml + barrel.ml_per_barrel * barrel.quantity
-                        connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_blue_ml = :num_blue_ml"), {'num_blue_ml': new_total_ml})
-
-                   # elif barrel.potion_type == [0, 0, 0, 1]: 
-                    #    total_ml = connection.execute(sqlalchemy.text("SELECT num_dark_ml FROM global_inventory")).scalar()
-                   #     new_total_ml = total_ml + barrel.ml_per_barrel * barrel.quantity
-                   #     connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_blue_ml = :num_blue_ml"), {'num_blue_ml': new_total_ml})
+                        gold_paid += barrel.price
+                        blue_ml += barrel.ml_per_barrel
+                    elif barrel.potion_type == [0, 0, 0, 1]: 
+                        gold_paid += barrel.price
+                        dark_ml += barrel.ml_per_barrel
                     else:
                         raise Exception("Invalid potion type")
-    print("gold paid: " + gold - new_gold + " ml bought")
+        connection.execute(
+            sqlalchemy.text("""
+                UPDATE globals SET
+                red_ml = red_ml + :red_ml,
+                green_ml = green_ml + :green_ml,
+                blue_ml = blue_ml + :blue_ml,
+                dark_ml = dark_ml + :dark_ml,
+                gold = gold - :gold_paid
+                """),
+                [{"red_ml": red_ml, "green_ml": green_ml, "blue_ml": blue_ml, "dark_ml": dark_ml, "gold_paid": gold_paid}])
+    print("gold paid: " + str(gold_paid) + " ml bought: "+ str(red_ml + blue_ml + green_ml + dark_ml))
     return "OK"
     
+def calculate_barrel_to_purchase(catalog, max_to_spend, potion_type, ml_available):
+    #print(max_to_spend)
+    possible_barrels = [barrel for barrel in catalog if (barrel.price <= max_to_spend) and (all(barrel.potion_type[i] == potion_type[i] for i in range(4))) and (barrel.ml_per_barrel <= ml_available)]
+    
+          
+    print(possible_barrels)
+    if len(possible_barrels) == 0:
+        return None 
+    possible_barrels.sort(key=lambda x: x.price / x.ml_per_barrel)
+    best_value = possible_barrels[0]
+    return best_value.sku
 
-# Gets called once a day
 @router.post("/plan")
 def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     """ """
+    print(wholesale_catalog)
+
     with db.engine.begin() as connection:
-        print(wholesale_catalog)
-        sql_to_execute = "SELECT gold FROM global_inventory"
-        result = connection.execute(sqlalchemy.text(sql_to_execute))
-        gold = result.scalar()
-        to_purchase = []
-        for barrel in wholesale_catalog:
-            potion_type = barrel.potion_type 
-            sku = barrel.sku
-            #just going to buy in catalog order if less than 10 potions for now, 
-            if gold >= barrel.price:
-                if potion_type == [0,1,0,0]:
-                    num_potions = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory")).scalar()
-                elif potion_type == [1,0,0,0]:
-                    num_potions = connection.execute(sqlalchemy.text("SELECT num_red_potions FROM global_inventory")).scalar()
-                elif potion_type == [0,0,1,0]:
-                    num_potions = connection.execute(sqlalchemy.text("SELECT num_blue_potions FROM global_inventory")).scalar()
+        results = connection.execute(sqlalchemy.text(
+             """
+            SELECT
+            green_ml,
+            blue_ml,
+            red_ml,
+            dark_ml,
+            gold,
+            ml_threshold,
+            ml_capacity
+            FROM globals""")).one()
+    ml_inventory = [results.red_ml, results.green_ml, results.blue_ml, results.dark_ml]            
+    ml_capacity = results.ml_capacity
+    threshold = results.ml_threshold
+    barrel_purchases = []
+    current_ml = sum(ml_inventory)
+    gold = results.gold
+    #print(gold)
 
-                max_quantity = min(barrel.quantity, (gold // barrel.price)) 
+    #selling_large = any(item.sku.startswith('LARGE') for item in wholesale_catalog)
+    #threshold = ml_threshold_large if selling_large çelse ml_threshold_normal
 
-                #print("SKU: "+sku+" price: " + barrel.price+ " max_quantity = " + max_quantity)
+     # even budgets unless we are on a tiny budget then we can just buy 1 color
+    for i, ml in enumerate(ml_inventory):
+         #print("looping"+ str(i)+ str(ml))
+         if ml < threshold:
+            potion_type = [int(j == i) for j in range(4)]
+            print(potion_type)
+            print(current_ml)
+            print(ml)
+            print(min(threshold - ml, ml_capacity - current_ml))
+            
+            purchase_sku = calculate_barrel_to_purchase(wholesale_catalog, gold/4 if gold > 300 else gold, potion_type, min(threshold - ml, ml_capacity - current_ml))
+            print(purchase_sku)
+            catalog_entry = None
+            if purchase_sku is not None:
+                for barrel in wholesale_catalog:  
+                        if barrel.sku == purchase_sku:
+                            catalog_entry = barrel
+            
+                   #quantity = min(catalog_entry.quantity, (threshold - current_ml) // catalog_entry.ml_per_barrel)
+                   #if quantity > 0:
+                quantity = 1 #hardcoded for now, above code isnt working
+                barrel_purchase = Barrel(catalog_entry.sku, catalog_entry.ml_per_barrel, catalog_entry.potion_type, catalog_entry.price, quantity)
+                barrel_purchases.append(barrel_purchase)
+                gold -= barrel_purchase.price * quantity
+                current_ml += barrel_purchase.ml_per_barrel * quantity
+                
+           
 
-                if num_potions <= 10 and max_quantity > 0:
-                    target_quantity =  ((10 - num_potions) * 100 ) // barrel.ml_per_barrel + 1 # buy just enough to get us over 10 potions
-                    tobuy = min(max_quantity, target_quantity)
-                    gold -= (barrel.price * tobuy) #
-                    ml = barrel.ml_per_barrel
-                    price = barrel.price
-                    to_purchase.append({
-                        "sku": sku,
-                        "ml_per_barrel": ml,
-                        "potion_type": potion_type,
-                        "price": price,
-                        "quantity":  tobuy
-                    })
-        return to_purchase
-
+    
+    print(barrel_purchases)
+    return barrel_purchases 
