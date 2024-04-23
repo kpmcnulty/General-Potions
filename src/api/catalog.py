@@ -17,10 +17,10 @@ def get_catalog():
     for potion in potions:
         catalog.append(
         {
-            "sku": "GREEN_POTION",
-            "name": "Green potion",
+            "sku": "potion.sku",
+            "name": "Mixed potion", # can i have duplicates?
             "quantity": potion.quantity,
-            "price": 50,
+            "price": 50, # is this not hardcoded?
             "potion_type": potion.potion_type
         })
     
