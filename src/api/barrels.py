@@ -29,7 +29,7 @@ def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
     with db.engine.begin() as connection:
         connection.execute(
                 sqlalchemy.text(
-                    "INSERT INTO processed (id, type) VALUES (:order_id, 'barrels')"),
+                    "INSERT INTO processed (order_id, type) VALUES (:order_id, 'barrels')"),
                 [{"order_id": order_id}])
         #try:
         #    
