@@ -97,7 +97,7 @@ def create_cart(new_cart: Customer):
         #carts[newid] = {'name': new_cart.customer_name, 'items': {}}
         connection.execute(
                 sqlalchemy.text(
-                    "INSERT INTO carts (id, name, items) VALUES (:id, :name, [])"),
+                    "INSERT INTO carts (id, name, items) VALUES (:id, :name)"),
                 [{"id": newid, "name": new_cart.customer_name}])
     return {"cart_id": newid}
 
