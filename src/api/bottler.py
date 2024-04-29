@@ -86,37 +86,45 @@ def get_bottle_plan():
                 red_ml,
                 dark_ml
                 FROM globals""")).one()
-        total_potions = connection.execute(sqlalchemy.text(
-            "SELECT SUM(quantity) FROM potions"
-        )).scalar()
-        if not total_potions:
-            total_potions = 0
-
+        
+        potions = connection.execute(sqlalchemy.text(
+            "SELECT * FROM potions"
+        )).all()
+        potion_capacity = results.potion_capacity
+        total_potions = sum(potion.quantity for potion in potions)
         ml_inventory = [results.red_ml, results.green_ml, results.blue_ml, results.dark_ml] 
-        total_ml = sum(ml_inventory)
-        
-
-        ml_ratio = get_ml_ratio(ml_inventory)
-        if not ml_ratio:
-            return []
-
-        quantity = 0
         potions_to_bottle = []
+        sorted_potions = sorted(potions, key=lambda potion: potion.priority)
+        for potion in sorted_potions:
+            total_potions += potion.quantity
+            potion_type = potion.potion_type
+            
+            print(potion.sku)
+            factor_greater = [0,0,0,0] 
+            color_mls = [0,0,0,0]
 
-        quantities = []
-        for inventory, ratio in zip(ml_inventory, ml_ratio):    
-            if ratio != 0:
-                quantities.append(inventory // ratio)
-        quantity = min(quantities)
-        if total_potions < results.potion_capacity:
-            potions_to_bottle.append(
-                {
-                    "potion_type": ml_ratio,  
-                    "quantity": quantity,
+            for i in range(len(potion_type)):
+                
+                color_mls[i] = (potion_type[i] / 2)
+                if color_mls[i] != 0:
+                    factor_greater[i] = ml_inventory[i] // color_mls[i]
+                else:
+                    factor_greater[i] = -1
+                print(factor_greater)
+            quantity = min(factor for factor in factor_greater if factor != -1)
+            print(quantity)
 
-                }
-            )
-        
+            if (total_potions + quantity) > potion_capacity:
+                    quantity = potion_capacity - total_potions
+            if quantity >= 1:
+                potions_to_bottle.append({
+                    "potion_type": potion.sku,
+                    "quantity" : quantity
+                    })
+            total_potions += quantity
+            for i in range(len(color_mls)):
+                ml_inventory[i] -= (quantity * color_mls[i])
+
     return potions_to_bottle
 
 
