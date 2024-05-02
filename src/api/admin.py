@@ -25,7 +25,7 @@ def reset():
                 blue_ml = 0,
                 dark_ml = 0,
                 gold = 100,
-                potion_capcity = 50,
+                potion_capacity = 50,
                 ml_capacity = 10000     
 
                 """))
