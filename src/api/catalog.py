@@ -16,12 +16,16 @@ def get_catalog():
     catalog = []
     counter = 0
     for potion in potions:
+        quantity = connection.execute(sqlalchemy.text(
+            "SELECT SUM(delta_potion) FROM potion_transacions WHERE sku = :sku",
+            {"sku": potion.sku},
+        )).scalar()
         if potion.quantity > 0 and counter < 6:
             catalog.append(
             {
                 "sku": potion.sku,
                 "name": potion.name,
-                "quantity": potion.quantity, #TODO: LEDGERIZE
+                "quantity": quantity, #TODO: LEDGERIZE
                 "price": potion.price, 
                 "potion_type": potion.potion_type
             })
