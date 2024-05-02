@@ -24,11 +24,15 @@ def reset():
                 green_ml = 0,
                 blue_ml = 0,
                 dark_ml = 0,
-                gold = 100
+                gold = 100,
+                potion_capcity = 50,
+                ml_capacity = 10000     
+
                 """))
         connection.execute(
             sqlalchemy.text("""
-                DELETE FROM potions"""))
+                UPDATE potions SET 
+                    quantity = 0"""))
         connection.execute(
             sqlalchemy.text("""
                 DELETE FROM processed"""))
