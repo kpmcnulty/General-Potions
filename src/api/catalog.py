@@ -21,7 +21,7 @@ def get_catalog():
             {
                 "sku": potion.sku,
                 "name": potion.name,
-                "quantity": potion.quantity,
+                "quantity": potion.quantity, #TODO: LEDGERIZE
                 "price": potion.price, 
                 "potion_type": potion.potion_type
             })
