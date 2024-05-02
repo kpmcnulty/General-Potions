@@ -14,16 +14,18 @@ def get_catalog():
         potions = connection.execute(sqlalchemy.text("SELECT * FROM potions")).all()
 
     catalog = []
+    counter = 0
     for potion in potions:
-        if potion.quantity > 0:
+        if potion.quantity > 0 and counter < 6:
             catalog.append(
             {
                 "sku": potion.sku,
                 "name": potion.name,
                 "quantity": potion.quantity,
-                "price": potion.price, # is this not hardcoded?
+                "price": potion.price, 
                 "potion_type": potion.potion_type
             })
+            counter += 1
     
     return catalog
         
