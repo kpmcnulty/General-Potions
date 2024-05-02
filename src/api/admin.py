@@ -20,19 +20,25 @@ def reset():
         connection.execute(
             sqlalchemy.text("""
                 UPDATE globals SET
-                red_ml = 0,
-                green_ml = 0,
-                blue_ml = 0,
-                dark_ml = 0,
-                gold = 100,
                 potion_capacity = 50,
                 ml_capacity = 10000     
 
                 """))
         connection.execute(
             sqlalchemy.text("""
-                UPDATE potions SET 
-                    quantity = 0"""))
+                DELETE FROM potion_transactions
+                            """))
+        connection.execute(
+            sqlalchemy.text("""
+                DELETE FROM money_transactions
+                            """))
+        connection.execute(
+            sqlalchemy.text("INSERT INTO money_transactions (id, type, delta_gold) VALUES (:id, :type, :delta_gold)"),
+                [{"id": 1, "type": "starter gold" , "delta_gold": 100}])
+        connection.execute(
+            sqlalchemy.text("""
+                DELETE FROM ml_transactions
+                            """))
         connection.execute(
             sqlalchemy.text("""
                 DELETE FROM processed"""))

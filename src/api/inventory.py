@@ -47,14 +47,9 @@ def get_capacity_plan():
                 SELECT
                 ml_capacity,
                 potion_capacity,
-                green_ml,
-                blue_ml,
-                red_ml,
-                dark_ml,
-                gold
                 FROM globals""")).one()
         total_potions = connection.execute(sqlalchemy.text(
-            "SELECT SUM(quantity) FROM potions"
+            "SELECT SUM(delta_potion) FROM potion_transactions"
         )).scalar()
         if not total_potions:
             total_potions = 0
