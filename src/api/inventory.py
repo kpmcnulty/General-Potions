@@ -23,10 +23,10 @@ def get_inventory():
         dark_ml = connection.execute("SELECT SUM(delta_dark_ml) FROM ml_transactions").scalar()
         gold = connection.execute("SELECT SUM(delta_gold) FROM money_transactions").scalar()
 
-        gold = gold
+       
         total_ml = sum([red_ml, green_ml, blue_ml, dark_ml]) 
         total_potions = connection.execute(sqlalchemy.text(
-            "SELECT SUM(quantity) FROM potions"
+            "SELECT SUM(delta_potion) FROM potions_transactions"
         )).scalar()
         if not total_potions:
             total_potions = 0
@@ -46,22 +46,26 @@ def get_capacity_plan():
                 ml_capacity,
                 potion_capacity,
                 FROM globals""")).one()
+        red_ml = connection.execute("SELECT SUM(delta_red_ml) FROM ml_transactions").scalar()
+        green_ml = connection.execute("SELECT SUM(delta_green_ml) FROM ml_transactions").scalar()
+        blue_ml = connection.execute("SELECT SUM(delta_blue_ml) FROM ml_transactions").scalar()
+        dark_ml = connection.execute("SELECT SUM(delta_dark_ml) FROM ml_transactions").scalar()
+        gold = connection.execute("SELECT SUM(delta_gold) FROM money_transactions").scalar()
+
         total_potions = connection.execute(sqlalchemy.text(
-            "SELECT SUM(delta_potion) FROM potion_transactions"
+            "SELECT SUM(delta_potion) FROM potion_transacions"
         )).scalar()
-        gold = connection.execute(sqlalchemy.text(
-            "SELECT SUM(delta_gold) FROM gold_transactions"
-        )).scalar()
+        
         if not total_potions:
             total_potions = 0
     potion_units = 0
     ml_units = 0
     if (total_potions / results.potion_capacity) > .9:
-        if results.gold >= 1000:
+        if gold >= 1000:
             potion_units += 1
-    total_ml = sum([results.red_ml, results.green_ml, results.blue_ml, results.dark_ml]) 
+    total_ml = sum([red_ml, green_ml, blue_ml, dark_ml]) 
     if (total_ml / results.ml_capacity) > .9:
-        if results.gold >= 1000:
+        if gold >= 1000:
             ml_units += 1
     return {
         "potion_capacity": potion_units,
