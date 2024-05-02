@@ -56,6 +56,8 @@ def get_capacity_plan():
         total_potions = connection.execute(sqlalchemy.text(
             "SELECT SUM(quantity) FROM potions"
         )).scalar()
+        if not total_potions:
+            total_potions = 0
     potion_units = 0
     ml_units = 0
     if (total_potions / results.potion_capacity) > .9:

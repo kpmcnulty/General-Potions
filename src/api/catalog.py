@@ -15,14 +15,15 @@ def get_catalog():
 
     catalog = []
     for potion in potions:
-        catalog.append(
-        {
-            "sku": potion.sku,
-            "name": potion.name,
-            "quantity": potion.quantity,
-            "price": 50, # is this not hardcoded?
-            "potion_type": potion.potion_type
-        })
+        if potion.quantity > 0:
+            catalog.append(
+            {
+                "sku": potion.sku,
+                "name": potion.name,
+                "quantity": potion.quantity,
+                "price": potion.price, # is this not hardcoded?
+                "potion_type": potion.potion_type
+            })
     
     return catalog
         
