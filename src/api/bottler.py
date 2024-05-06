@@ -63,10 +63,11 @@ def get_bottle_plan():
     potions_to_bottle = []
     with db.engine.begin() as connection:
         potion_capacity = connection.execute(sqlalchemy.text("SELECT potion_capacity, FROM globals")).one()
-        red_ml = connection.execute("SELECT SUM(delta_red_ml) FROM ml_transactions").scalar()
-        green_ml = connection.execute("SELECT SUM(delta_green_ml) FROM ml_transactions").scalar()
-        blue_ml = connection.execute("SELECT SUM(delta_blue_ml) FROM ml_transactions").scalar()
-        dark_ml = connection.execute("SELECT SUM(delta_dark_ml) FROM ml_transactions").scalar()
+        red_ml = connection.execute(sqlalchemy.text("SELECT SUM(delta_red_ml) FROM ml_transactions")).scalar()
+        green_ml = connection.execute(sqlalchemy.text("SELECT SUM(delta_green_ml) FROM ml_transactions")).scalar()
+        blue_ml = connection.execute(sqlalchemy.text("SELECT SUM(delta_blue_ml) FROM ml_transactions")).scalar()
+        dark_ml = connection.execute(sqlalchemy.text("SELECT SUM(delta_dark_ml) FROM ml_transactions")).scalar()
+        gold = connection.execute(sqlalchemy.text("SELECT SUM(delta_gold) FROM money_transactions")).scalar()
         potions = connection.execute(sqlalchemy.text(
             "SELECT * FROM potions"
         )).all()

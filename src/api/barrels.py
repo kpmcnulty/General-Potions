@@ -96,13 +96,23 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
             ml_threshold,
             ml_capacity
             FROM globals""")).one()
-        red_ml = connection.execute("SELECT SUM(delta_red_ml) FROM ml_transactions").scalar()
-        green_ml = connection.execute("SELECT SUM(delta_green_ml) FROM ml_transactions").scalar()
-        blue_ml = connection.execute("SELECT SUM(delta_blue_ml) FROM ml_transactions").scalar()
-        dark_ml = connection.execute("SELECT SUM(delta_dark_ml) FROM ml_transactions").scalar()
-        gold = connection.execute("SELECT SUM(delta_gold) FROM money_transactions").scalar()
+        red_ml = 0
+        green_ml = 0
+        blue_ml=0
+        dark_ml=0
+        gold=0
+
+        if connection.execute(sqlalchemy.text("SELECT * from ml_transactions")) is not None:
+            red_ml = connection.execute(sqlalchemy.text("SELECT SUM(delta_red_ml) FROM ml_transactions")).scalar()
+            green_ml = connection.execute(sqlalchemy.text("SELECT SUM(delta_green_ml) FROM ml_transactions")).scalar()
+            blue_ml = connection.execute(sqlalchemy.text("SELECT SUM(delta_blue_ml) FROM ml_transactions")).scalar()
+            dark_ml = connection.execute(sqlalchemy.text("SELECT SUM(delta_dark_ml) FROM ml_transactions")).scalar()
+            gold = connection.execute(sqlalchemy.text("SELECT SUM(delta_gold) FROM money_transactions")).scalar()
     
-    ml_inventory = [red_ml, green_ml, blue_ml, dark_ml]            
+    ml_inventory = [red_ml, green_ml, blue_ml, dark_ml]         
+    for ml in ml_inventory:
+        if not ml:
+             ml = 0        
     ml_capacity = results.ml_capacity
     threshold = results.ml_threshold
     barrel_purchases = []
