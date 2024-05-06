@@ -17,11 +17,20 @@ def get_inventory():
     with db.engine.begin() as connection:
         ##todo
         ##get num of red mls
-        red_ml = connection.execute("SELECT SUM(delta_red_ml) FROM ml_transactions").scalar()
-        green_ml = connection.execute("SELECT SUM(delta_green_ml) FROM ml_transactions").scalar()
-        blue_ml = connection.execute("SELECT SUM(delta_blue_ml) FROM ml_transactions").scalar()
-        dark_ml = connection.execute("SELECT SUM(delta_dark_ml) FROM ml_transactions").scalar()
-        gold = connection.execute("SELECT SUM(delta_gold) FROM money_transactions").scalar()
+        
+        red_ml = 0
+        green_ml = 0
+        blue_ml=0
+        dark_ml=0
+        gold=0
+
+        if connection.execute("SELECT * from ml_transactions"):
+            red_ml = connection.execute("SELECT SUM(delta_red_ml) FROM ml_transactions").scalar()
+            green_ml = connection.execute("SELECT SUM(delta_green_ml) FROM ml_transactions").scalar()
+            blue_ml = connection.execute("SELECT SUM(delta_blue_ml) FROM ml_transactions").scalar()
+            dark_ml = connection.execute("SELECT SUM(delta_dark_ml) FROM ml_transactions").scalar()
+            gold = connection.execute("SELECT SUM(delta_gold) FROM money_transactions").scalar()
+      
 
        
         total_ml = sum([red_ml, green_ml, blue_ml, dark_ml]) 
