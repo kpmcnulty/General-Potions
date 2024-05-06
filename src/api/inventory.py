@@ -113,7 +113,7 @@ def deliver_capacity_plan(capacity_purchase : CapacityPurchase, order_id: int):
             {"potion_capacity": capacity_purchase.potion_capacity, "ml_capacity": capacity_purchase.ml_capacity},
         )
         num_transactions = connection.execute(sqlalchemy.text(
-            "SELECT COUNT* FROM money_transactions"
+            "SELECT COUNT(*) FROM money_transactions"
         )).scalar()
         connection.execute(
             sqlalchemy.text(

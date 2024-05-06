@@ -38,17 +38,17 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int
             sku = connection.execute(
                 sqlalchemy.text(
                     "SELECT sku from potions WHERE potion_type = :potion_type"),
-                [{"potion_type": potion.potion_type}])
-            num_transactions = connection.execute(sqlalchemy.text( "SELECT COUNT* FROM potion_transactions")).scalar()
+                [{"potion_type": potion.potion_type}]).scalar()
+            num_transactions = connection.execute(sqlalchemy.text( "SELECT COUNT(*) FROM potion_transactions")).scalar()
             connection.execute(
                 sqlalchemy.text(
                     "INSERT INTO potion_transactions (id, sku, type, delta_potion) VALUES (:id, :sku, :type, :delta_potions)"),
                     [{"id": num_transactions+1, "sku": sku, "type": "Potion bottled", "delta_potions": quantity}])
 
-            num_ml_transactions = connection.execute(sqlalchemy.text( "SELECT COUNT* FROM ml_transactions")).scalar()
+            num_ml_transactions = connection.execute(sqlalchemy.text( "SELECT COUNT(*) FROM ml_transactions")).scalar()
             connection.execute(
                 sqlalchemy.text("INSERT INTO ml_transactions (id, type, delta_red_ml, delta_green_ml, delta_blue_ml, delta_dark_ml) VALUES (:id, :type, :red_ml, :green_ml, :blue_ml, :dark_ml)"),
-                [{"id": num_ml_transactions+1,"type": "Potions bottled", "red_ml": red_ml, "green_ml": green_ml, "blue_ml": blue_ml, "dark_ml": dark_ml}])
+                [{"id": num_ml_transactions+1,"type": "Potions bottled", "red_ml": -1*red_ml, "green_ml": -1*green_ml, "blue_ml": -1*blue_ml, "dark_ml": -1*dark_ml}])
     #print(f"potions delievered: {potions_delivered} order_id: {order_id}")
 
     return "OK"

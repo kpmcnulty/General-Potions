@@ -58,16 +58,18 @@ def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
                         dark_ml += barrel.ml_per_barrel
                     else:
                         raise Exception("Invalid potion type")
-    connection.execute(
-            sqlalchemy.text("""
-                INSERT INTO ml_transactions (type, delta_red_ml, delta_green_ml, delta_red_ml) VALUES (:type, :red_ml, :green_ml, :blue_ml, :dark_ml)
-                """),
-                [{"type": "barrel_purchase", "red_ml": red_ml, "green_ml": green_ml, "blue_ml": blue_ml, "dark_ml": dark_ml}])
-    connection.execute(
-            sqlalchemy.text("""
-                INSERT INTO money_transactions (type, delta_gold) VALUES (:type, :gold)
-                """),
-                [{"type": "barrel_purchase", "gold_paid": (-1 * gold_paid)}])
+        num_money_transactions = connection.execute(sqlalchemy.text("SELECT COUNT(*) FROM money_transactions")).scalar()
+        num_ml_transactions = connection.execute(sqlalchemy.text("SELECT COUNT(*) FROM ml_transactions")).scalar()
+        connection.execute(
+                sqlalchemy.text("""
+                    INSERT INTO ml_transactions (id, type, delta_red_ml, delta_green_ml, delta_blue_ml, delta_dark_ml) VALUES (:id, :type, :red_ml, :green_ml, :blue_ml, :dark_ml)
+                    """),
+                    [{"id": num_ml_transactions+1,"type": "barrel_purchase", "red_ml": red_ml, "green_ml": green_ml, "blue_ml": blue_ml, "dark_ml": dark_ml}])
+        connection.execute(
+                sqlalchemy.text("""
+                    INSERT INTO money_transactions (id, type, delta_gold) VALUES (:id, :type, :gold)
+                    """),
+                    [{"id": num_money_transactions+1, "type": "barrel_purchase", "gold": (-1 * gold_paid)}])
     print("gold paid: " + str(gold_paid) + " ml bought: "+ str(red_ml + blue_ml + green_ml + dark_ml))
     return "OK"
     
@@ -101,7 +103,7 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
         blue_ml=0
         dark_ml=0
         gold=0
-
+        
         if connection.execute(sqlalchemy.text("SELECT * from ml_transactions")) is not None:
             red_ml = connection.execute(sqlalchemy.text("SELECT SUM(delta_red_ml) FROM ml_transactions")).scalar()
             green_ml = connection.execute(sqlalchemy.text("SELECT SUM(delta_green_ml) FROM ml_transactions")).scalar()
