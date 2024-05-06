@@ -62,21 +62,27 @@ def get_bottle_plan():
     """
     potions_to_bottle = []
     with db.engine.begin() as connection:
-        potion_capacity = connection.execute(sqlalchemy.text("SELECT potion_capacity, FROM globals")).one()
+        potion_capacity = connection.execute(sqlalchemy.text("SELECT potion_capacity FROM globals")).scalar()
         red_ml = connection.execute(sqlalchemy.text("SELECT SUM(delta_red_ml) FROM ml_transactions")).scalar()
         green_ml = connection.execute(sqlalchemy.text("SELECT SUM(delta_green_ml) FROM ml_transactions")).scalar()
         blue_ml = connection.execute(sqlalchemy.text("SELECT SUM(delta_blue_ml) FROM ml_transactions")).scalar()
         dark_ml = connection.execute(sqlalchemy.text("SELECT SUM(delta_dark_ml) FROM ml_transactions")).scalar()
-        gold = connection.execute(sqlalchemy.text("SELECT SUM(delta_gold) FROM money_transactions")).scalar()
+
         potions = connection.execute(sqlalchemy.text(
             "SELECT * FROM potions"
         )).all()
         
         total_potions = connection.execute(sqlalchemy.text(
-            "SELECT SUM(delta_potion) FROM potion_transacions"
+            "SELECT SUM(delta_potion) FROM potion_transactions"
         )).scalar()
+        if not total_potions:
+            total_potions = 0
 
         ml_inventory = [red_ml, green_ml, blue_ml, dark_ml] 
+   
+        for i in range(len(ml_inventory)):
+            if not ml_inventory[i]:
+                ml_inventory[i] = 0
         potions_to_bottle = []
         sorted_potions = sorted(potions, key=lambda potion: potion.priority)
         for potion in sorted_potions:
@@ -96,8 +102,8 @@ def get_bottle_plan():
                     factor_greater[i] = -1
                 print(factor_greater)
             quantity = min(factor for factor in factor_greater if factor != -1)
-            print(quantity)
-
+            print(total_potions + quantity)
+            print(potion_capacity)
             if (total_potions + quantity) > potion_capacity:
                     quantity = potion_capacity - total_potions
             if quantity >= 1:

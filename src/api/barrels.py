@@ -109,10 +109,11 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
             dark_ml = connection.execute(sqlalchemy.text("SELECT SUM(delta_dark_ml) FROM ml_transactions")).scalar()
             gold = connection.execute(sqlalchemy.text("SELECT SUM(delta_gold) FROM money_transactions")).scalar()
     
-    ml_inventory = [red_ml, green_ml, blue_ml, dark_ml]         
-    for ml in ml_inventory:
-        if not ml:
-             ml = 0        
+    ml_inventory = [red_ml, green_ml, blue_ml, dark_ml]       
+    for i in range(len(ml_inventory)):
+        if not ml_inventory[i]:
+            ml_inventory[i] = 0
+
     ml_capacity = results.ml_capacity
     threshold = results.ml_threshold
     barrel_purchases = []

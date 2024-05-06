@@ -34,13 +34,13 @@ def get_inventory():
 
         
         mls = [red_ml, green_ml, blue_ml, dark_ml]
-        for ml in mls:
-            if not ml:
-                ml = 0
+        for i in range(len(mls)):
+            if not mls[i]:
+                mls[i] = 0
 
         total_ml = sum(mls)
         total_potions = connection.execute(sqlalchemy.text(
-            "SELECT SUM(delta_potion) FROM potions_transactions"
+            "SELECT SUM(delta_potion) FROM potion_transactions"
         )).scalar()
         if not total_potions:
             total_potions = 0

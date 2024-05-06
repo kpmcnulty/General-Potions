@@ -23,7 +23,7 @@ def get_catalog():
             )).scalar()
         except Exception:
             quantity = 0
-        if quantity = None:
+        if quantity == None:
             quantity = 0
         if potion.quantity > 0 and counter < 6:
             catalog.append(
