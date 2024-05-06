@@ -94,7 +94,6 @@ def create_cart(new_cart: Customer):
         num_carts = connection.execute(sqlalchemy.text(
                 """SELECT COUNT(*) FROM carts""")).scalar()
         newid = num_carts + 1
-        #carts[newid] = {'name': new_cart.customer_name, 'items': {}}
         connection.execute(
                 sqlalchemy.text(
                     "INSERT INTO carts (id, name, items) VALUES (:id, :name)"),
@@ -140,13 +139,17 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
         potions_bought = 0
         for item in items:
             print(item.sku)
+            num_transactions = connection.execute(sqlalchemy.text( "SELECT COUNT* FROM potion_transactions")).scalar()
+
             connection.execute(sqlalchemy.text("""
-                            UPDATE potions 
-                            SET quantity = quantity - :quantity
-                            WHERE sku = :sku
-                            """), {'sku': item.sku, "quantity": item.quantity})
+                           INSERT INTO potion_transactions (id, sku, quantity, type) VALUES (:id, :sku, :quantity, :type)
+                            """), [{"id": num_transactions+1, "sku": item.sku, "quantity": (-1 * item.quantity), "type": "Cart purchase"}])
             goldadded += 50 * item.quantity
             potions_bought += item.quantity
-        gold = connection.execute(sqlalchemy.text("SELECT gold FROM globals")).scalar()    
-        connection.execute(sqlalchemy.text("UPDATE globals SET gold = :gold"), {'gold': gold+goldadded}) 
+            
+        connection.execute(
+            sqlalchemy.text("""
+                INSERT INTO money_transactions (type, delta_gold) VALUES (:type, :gold)
+                """),
+                [{"type": "cart_checkout", "gold_paid": goldadded}])
     return {"total_potions_bought": potions_bought, "total_gold_paid": goldadded}

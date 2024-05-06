@@ -20,8 +20,7 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int
     """ """
     with db.engine.begin() as connection:
        
-        potion_rows = connection.execute(sqlalchemy.text(
-                """SELECT COUNT(*) FROM potions""")).scalar()
+       
         red_ml = 0
         blue_ml = 0
         green_ml = 0
@@ -34,40 +33,26 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int
             blue_ml += int(((potion.potion_type[1] / 100) * 50) * quantity)
             green_ml += int(((potion.potion_type[2] / 100) * 50) * quantity)
             dark_ml += int(((potion.potion_type[3] / 100) * 50) * quantity)
-            sku = potion_rows + 1
-            potion_rows = sku
+            
+            
+            sku = connection.execute(
+                sqlalchemy.text(
+                    "SELECT sku from potions WHERE potion_type = :potion_type"),
+                [{"potion_type": potion.potion_type}])
+            num_transactions = connection.execute(sqlalchemy.text( "SELECT COUNT* FROM potion_transactions")).scalar()
             connection.execute(
                 sqlalchemy.text(
-                    "INSERT INTO potions (sku, potion_type, quantity) VALUES (:sku, :potion_type, :quantity)"),
-                    [{"sku": sku, "potion_type": potion.potion_type, "quantity": quantity}])
-            
-        connection.execute(
-            sqlalchemy.text("""
-                UPDATE globals SET
-                red_ml = red_ml - :red_ml,
-                green_ml = green_ml - :green_ml,
-                blue_ml = blue_ml - :blue_ml,
-                dark_ml = dark_ml - :dark_ml
-                """),
-                [{"red_ml": red_ml, "green_ml": green_ml, "blue_ml": blue_ml, "dark_ml": dark_ml}])
+                    "INSERT INTO potion_transactions (id, sku, type, delta_potion) VALUES (:id, :sku, :type, :delta_potions)"),
+                    [{"id": num_transactions+1, "sku": sku, "type": "Potion bottled", "delta_potions": quantity}])
+
+            num_ml_transactions = connection.execute(sqlalchemy.text( "SELECT COUNT* FROM ml_transactions")).scalar()
+            connection.execute(
+                sqlalchemy.text("INSERT INTO ml_transactions (id, type, delta_red_ml, delta_green_ml, delta_blue_ml, delta_dark_ml) VALUES (:id, :type, :red_ml, :green_ml, :blue_ml, :dark_ml)"),
+                [{"id": num_ml_transactions+1,"type": "Potions bottled", "red_ml": red_ml, "green_ml": green_ml, "blue_ml": blue_ml, "dark_ml": dark_ml}])
     #print(f"potions delievered: {potions_delivered} order_id: {order_id}")
 
     return "OK"
 
-
-def get_ml_ratio(ml_inventory):
-    total_ml = sum(ml_inventory)
-    if total_ml < 100:
-        return None
-    ratio = [ml / total_ml for ml in ml_inventory]
-    
-    adjusted_ml = [int(ratio[i] * 100 / sum(ratio)) for i in range(len(ml_inventory))]
-
-    max_ml_index = adjusted_ml.index(max(adjusted_ml))
-    while sum(adjusted_ml) < 100:
-        adjusted_ml[max_ml_index] += 1  #should be fine since we check if total ml < 100
-        
-    return adjusted_ml
 
 
 @router.post("/plan")
@@ -77,22 +62,20 @@ def get_bottle_plan():
     """
     potions_to_bottle = []
     with db.engine.begin() as connection:
-        results = connection.execute(sqlalchemy.text(
-                """
-                SELECT
-                potion_capacity,
-                green_ml,
-                blue_ml,
-                red_ml,
-                dark_ml
-                FROM globals""")).one()
-        
+        potion_capacity = connection.execute(sqlalchemy.text("SELECT potion_capacity, FROM globals")).one()
+        red_ml = connection.execute("SELECT SUM(delta_red_ml) FROM ml_transactions").scalar()
+        green_ml = connection.execute("SELECT SUM(delta_green_ml) FROM ml_transactions").scalar()
+        blue_ml = connection.execute("SELECT SUM(delta_blue_ml) FROM ml_transactions").scalar()
+        dark_ml = connection.execute("SELECT SUM(delta_dark_ml) FROM ml_transactions").scalar()
         potions = connection.execute(sqlalchemy.text(
             "SELECT * FROM potions"
         )).all()
-        potion_capacity = results.potion_capacity
-        total_potions = sum(potion.quantity for potion in potions)
-        ml_inventory = [results.red_ml, results.green_ml, results.blue_ml, results.dark_ml] 
+        
+        total_potions = connection.execute(sqlalchemy.text(
+            "SELECT SUM(delta_potion) FROM potion_transacions"
+        )).scalar()
+
+        ml_inventory = [red_ml, green_ml, blue_ml, dark_ml] 
         potions_to_bottle = []
         sorted_potions = sorted(potions, key=lambda potion: potion.priority)
         for potion in sorted_potions:

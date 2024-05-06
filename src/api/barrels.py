@@ -58,21 +58,22 @@ def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
                         dark_ml += barrel.ml_per_barrel
                     else:
                         raise Exception("Invalid potion type")
-        connection.execute(
+    connection.execute(
             sqlalchemy.text("""
-                UPDATE globals SET
-                red_ml = red_ml + :red_ml,
-                green_ml = green_ml + :green_ml,
-                blue_ml = blue_ml + :blue_ml,
-                dark_ml = dark_ml + :dark_ml,
-                gold = gold - :gold_paid
+                INSERT INTO ml_transactions (type, delta_red_ml, delta_green_ml, delta_red_ml) VALUES (:type, :red_ml, :green_ml, :blue_ml, :dark_ml)
                 """),
-                [{"red_ml": red_ml, "green_ml": green_ml, "blue_ml": blue_ml, "dark_ml": dark_ml, "gold_paid": gold_paid}])
+                [{"type": "barrel_purchase", "red_ml": red_ml, "green_ml": green_ml, "blue_ml": blue_ml, "dark_ml": dark_ml}])
+    connection.execute(
+            sqlalchemy.text("""
+                INSERT INTO money_transactions (type, delta_gold) VALUES (:type, :gold)
+                """),
+                [{"type": "barrel_purchase", "gold_paid": (-1 * gold_paid)}])
     print("gold paid: " + str(gold_paid) + " ml bought: "+ str(red_ml + blue_ml + green_ml + dark_ml))
     return "OK"
     
 def calculate_barrel_to_purchase(catalog, max_to_spend, potion_type, ml_available):
     #print(max_to_spend)
+
     possible_barrels = [barrel for barrel in catalog if (barrel.price <= max_to_spend) and (all(barrel.potion_type[i] == potion_type[i] for i in range(4))) and (barrel.ml_per_barrel <= ml_available)]
     
           
@@ -92,25 +93,21 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
         results = connection.execute(sqlalchemy.text(
              """
             SELECT
-            green_ml,
-            blue_ml,
-            red_ml,
-            dark_ml,
-            gold,
             ml_threshold,
             ml_capacity
             FROM globals""")).one()
-    ml_inventory = [results.red_ml, results.green_ml, results.blue_ml, results.dark_ml]            
+        red_ml = connection.execute("SELECT SUM(delta_red_ml) FROM ml_transactions").scalar()
+        green_ml = connection.execute("SELECT SUM(delta_green_ml) FROM ml_transactions").scalar()
+        blue_ml = connection.execute("SELECT SUM(delta_blue_ml) FROM ml_transactions").scalar()
+        dark_ml = connection.execute("SELECT SUM(delta_dark_ml) FROM ml_transactions").scalar()
+        gold = connection.execute("SELECT SUM(delta_gold) FROM money_transactions").scalar()
+    
+    ml_inventory = [red_ml, green_ml, blue_ml, dark_ml]            
     ml_capacity = results.ml_capacity
     threshold = results.ml_threshold
     barrel_purchases = []
     current_ml = sum(ml_inventory)
-    gold = results.gold
-    #print(gold)
-
-    #selling_large = any(item.sku.startswith('LARGE') for item in wholesale_catalog)
-    #threshold = ml_threshold_large if selling_large çelse ml_threshold_normal
-
+    
      # even budgets unless we are on a tiny budget then we can just buy 1 color
     for i, ml in enumerate(ml_inventory):
          #print("looping"+ str(i)+ str(ml))
