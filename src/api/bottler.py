@@ -108,7 +108,7 @@ def get_bottle_plan():
                     quantity = potion_capacity - total_potions
             if quantity >= 1:
                 potions_to_bottle.append({
-                    "potion_type": potion.sku,
+                    "potion_type": potion.potion_type,
                     "quantity" : quantity
                     })
             total_potions += quantity
