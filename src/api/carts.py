@@ -54,6 +54,32 @@ def search_orders(
     time is 5 total line items.
     """
 
+    offset = (int(search_page) - 1) * 5 
+    with db.engine.begin() as connection:
+        append_string = ''
+        if sort_col == 'customer_name':
+        unformatted_query = """
+            SELECT cart_items.item_sku, carts.customer, cart_items.quantity, to_char(carts.created_at::timestamp, 'MM/DD/YYYY, HH12:MI:SS PM') as created_at
+            FROM carts
+            JOIN cart_items ON carts.id = cart_items.cart_id
+            WHERE carts.customer ILIKE :customer_name
+            AND cart_items.item_sku ILIKE :potion_sku
+            ORDER BY 
+                CASE WHEN :sort_col = 'customer_name' AND :sort_order = 'asc' THEN carts.customer END ASC,
+                CASE WHEN :sort_col = 'customer_name' AND :sort_order = 'desc' THEN carts.customer END DESC,
+                CASE WHEN :sort_col = 'item_sku' AND :sort_order = 'asc' THEN cart_items.item_sku END ASC,
+                CASE WHEN :sort_col = 'item_sku' AND :sort_order = 'desc' THEN cart_items.item_sku END DESC,
+                CASE WHEN :sort_col = 'line_item_total' AND :sort_order = 'asc' THEN cart_items.quantity END ASC,
+                CASE WHEN :sort_col = 'line_item_total' AND :sort_order = 'desc' THEN cart_items.quantity END DESC,
+                CASE WHEN :sort_col = 'timestamp' AND :sort_order = 'asc' THEN carts.created_at END ASC,
+                CASE WHEN :sort_col = 'timestamp' AND :sort_order = 'desc' THEN carts.created_at END DESC
+            LIMIT :limit OFFSET :offset
+        """
+        {[
+
+        ]}
+        result = connection.execute(sqlalchemy.text(sql_query), {"customer_name": f"%{customer_name}%", "potion_sku": f"%{potion_sku}%", "sort_col": sort_col, "sort_order": sort_order, "limit": items_per_page, "offset": offset})
+        orders = [{"item_sku": row[0], "customer_name": row[1], "line_item_total": row[2], "timestamp": row[3]} for row in result]
     return {
         "previous": "",
         "next": "",

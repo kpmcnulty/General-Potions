@@ -109,7 +109,7 @@ def get_bottle_plan():
             if quantity >= 1:
                 potions_to_bottle.append({
                     "potion_type": potion.potion_type,
-                    "quantity" : quantity
+                    "quantity" : int(quantity)
                     })
             total_potions += quantity
             for i in range(len(color_mls)):
