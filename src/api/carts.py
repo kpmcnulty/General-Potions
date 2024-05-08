@@ -56,40 +56,78 @@ def search_orders(
 
     offset = (int(search_page) - 1) * 5 
     with db.engine.begin() as connection:
-        append_string = """SELECT cart_items.item_sku, carts.customer, cart_items.quantity, to_char(carts.created_at::timestamp, 'MM/DD/YYYY, HH12:MI:SS PM') as created_at
+        append_string = """SELECT cart_items.sku, carts.name, cart_items.quantity, to_char(carts.created_at::timestamp, 'MM/DD/YYYY, HH12:MI:SS PM') as created_at
             FROM carts
-            JOIN cart_items ON carts.id = cart_items.cart_id
-            WHERE carts.customer = :customer_name
-            AND cart_items.item_sku = :potion_sku"""
-        if sort_col == 'customer_name':
-            append_string += "ORDER BY carts.customer"
-        if sort_col == 'item_sku':
-            append_string += "ORDER BY carts.customer"
-        if sort_order == 'asc':
-            append_string +=  """END ASC 
-            LIMIT 5 OFFSET :offset"""#unformatted
-        if sort_order == 'desc':
-            append_string +=  """END DESC
-            LIMIT 5 OFFSET :offset""" #unformatted
+            JOIN cart_items ON carts.id = cart_items.cart_id"""
+        #     WHERE carts.name = :customer_name
+        #     AND cart_items.sku = :potion_sku """
+        
+        # if sort_col == 'customer_name':
+        #     append_string += "ORDER BY carts.name "
+
+        # elif sort_col == 'item_sku':
+        #     append_string += "ORDER BY cart_items.sku "
+
+        # elif sort_col == 'line_item_total':
+        #     append_string += "ORDER BY cart_items.quantity "
+
+        # elif sort_col == 'timestamp':
+        #     append_string += "ORDER BY carts.created_at "
+
+        # if sort_order == 'asc':
+        #     append_string +=  """ ASC 
+        #     LIMIT 5 OFFSET :offset"""
+
+        # elif sort_order == 'desc':
+        #     append_string +=  """ DESC
+        #     LIMIT 5 OFFSET :offset"""
+        
+    
+        print(append_string)
+        result = connection.execute(sqlalchemy.text(append_string),[{"customer_name": customer_name, "potion_sku": potion_sku, "sort_col": sort_col,"sort_order": sort_order, "offset": offset}]).all()
+       
+        search_results = []
+        print(result)
+        resultid = 0
+        for row in result:
+            print("row" + str(row))
+            resultid += 1
+            print(row[0])
+            potion_price = connection.execute(sqlalchemy.text(
+                    "SELECT price FROM potions WHERE sku = :sku"),
+                    {"sku": row[0]}
+                ).scalar()
+            search_results.append(
+                {
+                    "line_item_id": resultid,
+                    "item_sku": row[0],
+                    "customer_name": row[1],
+                    "line_item_total": int (row[2]) * potion_price,
+                    "timestamp": row[3]
+                })
+    print(search_results)
+
+    isdescending = (sort_order.lower() == 'desc')
+    search_results.sort(key=lambda item: item[sort_col.lower()], reverse=isdescending)
+    print(search_results)
+    results_page = search_results[offset:offset+5]
+    
+    if int(search_page) > 1:
+        previous_page = str(int(search_page) - 1)
+    else:
+        previous_page = None
+    if len(search_results) >= 5:
+        next_page = str(int(search_page) + 1)
+    else:
+        next_page = None
+    
 
     
-        
-        result = connection.execute(sqlalchemy.text(append_string), [{"customer_name": customer_name, "potion_sku": potion_sku, "sort_col": sort_col,"sort_order": sort_order, "offset": offset}])
-       
-        
     return {
-        "previous": "",
-        "next": "",
-        "results": [
-            {
-                "line_item_id": 1,
-                "item_sku": "1 oblivion potion",
-                "customer_name": "Scaramouche",
-                "line_item_total": 50,
-                "timestamp": "2021-01-01T00:00:00Z",
-            }
-        ],
-    }
+            "previous": previous_page,
+            "next": next_page,
+            "results": results_page
+        }
 
 
 class Customer(BaseModel):
