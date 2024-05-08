@@ -55,7 +55,28 @@ def search_orders(
     """
 
     offset = (int(search_page) - 1) * 5 
+    with db.engine.begin() as connection:
+        append_string = """SELECT cart_items.item_sku, carts.customer, cart_items.quantity, to_char(carts.created_at::timestamp, 'MM/DD/YYYY, HH12:MI:SS PM') as created_at
+            FROM carts
+            JOIN cart_items ON carts.id = cart_items.cart_id
+            WHERE carts.customer = :customer_name
+            AND cart_items.item_sku = :potion_sku"""
+        if sort_col == 'customer_name':
+            append_string += "ORDER BY carts.customer"
+        if sort_col == 'item_sku':
+            append_string += "ORDER BY carts.customer"
+        if sort_order == 'asc':
+            append_string +=  """END ASC 
+            LIMIT 5 OFFSET :offset"""#unformatted
+        if sort_order == 'desc':
+            append_string +=  """END DESC
+            LIMIT 5 OFFSET :offset""" #unformatted
+
     
+        
+        result = connection.execute(sqlalchemy.text(append_string), [{"customer_name": customer_name, "potion_sku": potion_sku, "sort_col": sort_col,"sort_order": sort_order, "offset": offset}])
+       
+        
     return {
         "previous": "",
         "next": "",

@@ -29,10 +29,10 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int
         for potion in potions_delivered:
             quantity = potion.quantity
 
-            red_ml += int(((potion.potion_type[0] / 100) * 50) * quantity)
-            blue_ml += int(((potion.potion_type[1] / 100) * 50) * quantity)
-            green_ml += int(((potion.potion_type[2] / 100) * 50) * quantity)
-            dark_ml += int(((potion.potion_type[3] / 100) * 50) * quantity)
+            red_ml += int(potion.potion_type[0]) * quantity
+            blue_ml += int(potion.potion_type[1]) * quantity
+            green_ml += int(potion.potion_type[2]) * quantity
+            dark_ml += int(potion.potion_type[3]) * quantity
             
             
             sku = connection.execute(
@@ -94,8 +94,7 @@ def get_bottle_plan():
             color_mls = [0,0,0,0]
 
             for i in range(len(potion_type)):
-                
-                color_mls[i] = (potion_type[i] / 2)
+                color_mls[i] = potion_type[i]#(potion_type[i] / 2)
                 if color_mls[i] != 0:
                     factor_greater[i] = ml_inventory[i] // color_mls[i]
                 else:
