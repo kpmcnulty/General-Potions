@@ -184,7 +184,7 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
             
             
             price = connection.execute(sqlalchemy.text(
-                "SELECT price FROM potions WHERE sku = :sku"),[{"sku": item.sku}])
+                "SELECT price FROM potions WHERE sku = :sku"),[{"sku": item.sku}]).scalar()
             goldadded += price * item.quantity
             potions_bought += item.quantity
         num_gold_transactions = connection.execute(sqlalchemy.text( "SELECT COUNT(*) FROM money_transactions")).scalar()
