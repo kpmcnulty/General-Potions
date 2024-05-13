@@ -59,29 +59,6 @@ def search_orders(
         append_string = """SELECT cart_items.sku, carts.name, cart_items.quantity, to_char(carts.created_at::timestamp, 'MM/DD/YYYY, HH12:MI:SS PM') as created_at
             FROM carts
             JOIN cart_items ON carts.id = cart_items.cart_id"""
-        #     WHERE carts.name = :customer_name
-        #     AND cart_items.sku = :potion_sku """
-        
-        # if sort_col == 'customer_name':
-        #     append_string += "ORDER BY carts.name "
-
-        # elif sort_col == 'item_sku':
-        #     append_string += "ORDER BY cart_items.sku "
-
-        # elif sort_col == 'line_item_total':
-        #     append_string += "ORDER BY cart_items.quantity "
-
-        # elif sort_col == 'timestamp':
-        #     append_string += "ORDER BY carts.created_at "
-
-        # if sort_order == 'asc':
-        #     append_string +=  """ ASC 
-        #     LIMIT 5 OFFSET :offset"""
-
-        # elif sort_order == 'desc':
-        #     append_string +=  """ DESC
-        #     LIMIT 5 OFFSET :offset"""
-        
     
         print(append_string)
         result = connection.execute(sqlalchemy.text(append_string),[{"customer_name": customer_name, "potion_sku": potion_sku, "sort_col": sort_col,"sort_order": sort_order, "offset": offset}]).all()
@@ -201,11 +178,14 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
         for item in items:
             print(item.sku)
             num_transactions = connection.execute(sqlalchemy.text( "SELECT COUNT(*) FROM potion_transactions")).scalar()
-
             connection.execute(sqlalchemy.text("""
                            INSERT INTO potion_transactions (id, sku, delta_potion, type) VALUES (:id, :sku, :quantity, :type)
                             """), [{"id": num_transactions+1, "sku": item.sku, "quantity": (-1 * item.quantity), "type": "Cart purchase"}])
-            goldadded += 50 * item.quantity
+            
+            
+            price = connection.execute(sqlalchemy.text(
+                "SELECT price FROM potions WHERE sku = :sku"),[{"sku": item.sku}])
+            goldadded += price * item.quantity
             potions_bought += item.quantity
         num_gold_transactions = connection.execute(sqlalchemy.text( "SELECT COUNT(*) FROM money_transactions")).scalar()
         connection.execute(
@@ -213,4 +193,5 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
                 INSERT INTO money_transactions (type, delta_gold) VALUES (:type, :gold)
                 """),
                 [{"id":num_gold_transactions+1, "type": "cart_checkout", "gold": goldadded}])
+    print("potions bought: " +  str(potions_bought)+ " total_gold_paid: " + str(goldadded))
     return {"total_potions_bought": potions_bought, "total_gold_paid": goldadded}
