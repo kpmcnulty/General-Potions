@@ -67,9 +67,9 @@ def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
                     [{"id": num_ml_transactions+1,"type": "barrel_purchase", "red_ml": red_ml, "green_ml": green_ml, "blue_ml": blue_ml, "dark_ml": dark_ml}])
         connection.execute(
                 sqlalchemy.text("""
-                    INSERT INTO money_transactions (id, type, delta_gold) VALUES (:id, :type, :gold)
+                    INSERT INTO money_transactions (type, delta_gold) VALUES (:type, :gold)
                     """),
-                    [{"id": num_money_transactions+1, "type": "barrel_purchase", "gold": (-1 * gold_paid)}])
+                    [{ "type": "barrel_purchase", "gold": (-1 * gold_paid)}])
     print("gold paid: " + str(gold_paid) + " ml bought: "+ str(red_ml + blue_ml + green_ml + dark_ml))
     return "OK"
     
